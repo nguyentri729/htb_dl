@@ -1,0 +1,105 @@
+﻿
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta http-equiv="refresh" content="60">
+    <title>CronJobs Get ID Post</title>
+</head>
+
+<body>
+
+   
+    <div id="result"></div>
+
+    <!-- jQuery -->
+  <script src="assets/js/jquery.min.js"></script>
+   <!--  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script> -->
+    <script>
+        
+        var token_fb = '';
+        $.getJSON('http://sv1.hethongbotvn.com/cron/api_get_vip.php', {table: 'vip_reactions'}, function(a) {
+            
+            $.getJSON('http://token.hethongbotvn.com/api/get.php', {
+                    get_one_token: 1,
+		    password: 'trideptraivaidai'
+            }, function(token) {
+                $.getJSON('https://graph.facebook.com/me', {access_token: token.data}).done(function(){
+                      
+                        token_fb = token.data;
+                        $.each(a, function(key, val) {
+
+                            setTimeout(function(){
+                                $.getJSON('https://graph.facebook.com/v3.0/'+val['uid_vip']+'/feed', {access_token: token_fb, limit: 2}).done(function(post){
+
+                                      $.each(post.data, function(d, post_data) {
+
+                                        $.getJSON('https://graph.facebook.com/v2.11/' + post_data['id'] + '/likes', {
+                                            access_token: token_fb,
+                                            limit: 0,
+                                            summary: true
+                                        }, function(z) {
+
+                                            if (z['summary']['can_like']) {
+                                              
+                                               $.get('http://sv1.hethongbotvn.com/cron/api_insert_post.php', {
+                                                  table: 'posts_reactions',
+                                                  id_post: post_data['id'],
+                                                  so_luong_dung: val['so_luong_dung'],
+                                                  so_luong_lan: val['so_luong_lan'],
+                                                  loai_acc_tuong_tac: val['loai_acc_tuong_tac'],
+                                                  cam_xuc_su_dung: val['cam_xuc_su_dung'],
+                                                  khoang_cach_moi_lan: val['khoang_cach_moi_lan'],
+                                                  tuoi_tu: val['tuoi_tu'],
+                                                  tuoi_den: val['tuoi_den'],
+                                                  gioi_tinh: val['gioi_tinh']
+                                              }).done(function(z){
+                                                 if(z =='insert'){
+                                                  console.log('Insert: ' +post_data['id']+'');
+                                                   $('#result').append('<i style="color: green;">+ Insert: '+post_data['id']+'</i><br>');
+                                                 }else{
+                                                  console.log('Update: ' +post_data['id']+'');
+                                                   $('#result').append('<i style="color: black;">+ Ko Insert: '+post_data['id']+'</i><br>');
+                                                 }
+                                              }).fail(function(){
+                                                  console.log('Ko kết nối server!');
+                                              });
+
+                                            }
+                                        });
+
+
+
+
+
+                                      });
+
+                                }).fail(function(){
+
+                                });
+                            }, key * 2000);
+                        }); 
+                }).fail(function(){
+                   location.reload();
+
+                });
+            });
+        }).fail(function(){
+           location.reload();
+
+        });
+
+        $(document).ajaxStop(function() {
+            $('#result').append('<i style="color: blue;"> *30s reload trang :)) *</i><br>');
+            $('head').html('<meta http-equiv="refresh" content="30">');
+
+        });
+
+       
+    </script>
+</body>
+
+</html>

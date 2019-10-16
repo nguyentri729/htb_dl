@@ -1,0 +1,61 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+	<title>Bot Reactions</title>
+	<script type="text/javascript" src="assets/js/jquery.min.js"></script>
+	
+	
+</head>
+<body>
+	<div style="padding-top: 6%"></div>
+	<div class="container">
+		<div class="row">
+			<div class="col-md-12">
+				<center><h5 style="color: red;">Debug: <span id="error"></span></h5></center><hr>
+				<div class="row" id="view">
+					
+					<div class="list-group">
+						<a href="#" class="list-group-item active">
+							<h4 class="list-group-item-heading">* Bot reactions - Đang tiến hành cron</h4>
+							<p class="list-group-item-text">- Total: <span id="count">0</span> requests</p>
+							<!-- <p class="list-group-item-text text-warning">Error: <span id="er">0</span> requests</p>
+							<p class="list-group-item-text text-success">Success: <span id="success">0</span> requests</p> -->
+						</a>
+					</div>
+
+					<!-- <center><h3>Getting users...</h3></center> -->
+				</div>
+			</div>
+			
+
+		</div>
+	</div>
+<script type="text/javascript">
+$(document).ready(function(){
+	setInterval(function(){
+   	   $.get('http://localhost/bot_reactions/sv1.php').fail(function(){
+			$('#error').html('Request bad ');
+			//$('#er').html(parseInt($('#er').html()) + 1);
+		}).always(function(){
+			$('#count').html(parseInt($('#count').html()) + 1);
+		});
+		$.get('http://localhost/bot_reactions/sv2.php').fail(function(){
+			$('#error').html('Request bad ');
+			//$('#er').html(parseInt($('#er').html()) + 1);
+		}).always(function(){
+			$('#count').html(parseInt($('#count').html()) + 1);
+		});
+	}, 60000);
+	
+	setInterval(function(){
+   	   $.get('http://token.hethongbotvn.com/token/cron.php?bang=access_token').fail(function(){
+		}).always(function(){
+			$('#count').html(parseInt($('#count').html()) + 1);
+		});
+		
+	}, 10000);
+	});
+</script>
+	
+</body>
+</html>

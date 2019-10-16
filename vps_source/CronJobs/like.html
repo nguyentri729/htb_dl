@@ -1,0 +1,160 @@
+﻿
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta http-equiv="refresh" content="20">
+    <title>CronJobs Like</title>
+
+</head>
+
+<body>
+
+    <ul class="list-group">
+        <li class="list-group-item"><b>ID Post: </b> <i id="id_post">xxxxx</i>
+        </li>
+        <li class="list-group-item"><b>Số lượng :  </b> <i id="so_luong">xxxxx</i>
+        </li>
+        <li class="list-group-item"><b>Đã like :  </b> <i id="da_like">xxxxx</i>
+        </li>
+        <li class="list-group-item"><b>Khoảng cách :  </b> <i id="khoang_cach">xxxxx</i>
+        </li>
+    </ul>
+    <hr>
+    <div id="result"></div>
+
+    <!-- jQuery -->
+    <script src="assets/js/jquery.min.js"></script>
+    <script>
+        var check = false;
+        var da_like = 0;
+        var max_like = 0;
+        var stop = false;
+        var lon = 1;
+        var id_post = '';
+        var list_token = [];
+        $.getJSON('http://sv1.hethongbotvn.com/cron/get_id.php', function(a) {
+            var limit = a['so_luong_lan'];
+            id_post = a['id_post'];
+            $('#id_post').html(id_post);
+            $('#so_luong').html(a['so_luong_can']);
+            $('#da_like').html(a['so_luong_da_dap_ung']);
+            $('#khoang_cach').html(a['khoang_cach_moi_lan']);
+            
+            $.getJSON('http://token.hethongbotvn.com/api/get.php', {
+                get_many_token: 1,
+                gender: a['gioi_tinh'],
+                loai_acc: a['loai_acc_tuong_tac'],
+                limit: limit,
+    password: 'trideptraivaidai',
+                where_run: 'reactions'
+            }, function(token) {
+                $.each(token, function(index, tk) {
+
+
+                    var n_token = tk['access_token'].trim();
+                    $.getJSON('https://graph.facebook.com/v2.11/' + a['id_post'] + '/likes', {
+                        access_token: n_token,
+                        limit: 0,
+                        summary: true
+                    }).done(function(z){
+                      try { 
+
+              if (z['summary']['has_liked'] == false) {
+                              $.post('https://graph.facebook.com/' + a['id_post'] + '/likes', {
+                                  access_token: n_token
+                              }).done(function(a) {
+                                  list_token.push(tk['id']);
+                                
+                                  console.log(da_like);
+                                  console.log(limit);
+                                  da_like++;
+                                  $('#result').append('<font style="color: blue;">Đã like (+1 = '+da_like+')</font><br>');
+                              }).fail(function() {
+                                  $('#result').append('<font style="color: red;">Like lỗi do token ! </font><br>');
+                              });
+                          } else {
+                               $('#result').append('<font style="color: purple;">Check Like rồi !</font><br>');
+                          }
+                      }
+                      catch(err){
+                        console.log(err);
+                      }
+
+                    }).fail(function() {
+                       $('#result').append('<font style="color: red;">Like lỗi do token ! </font><br>');
+                    });
+                });
+            });
+        });
+
+        $(document).ajaxStop(function() {
+
+            if (lon == 1) {
+
+                var update_time = btoa(JSON.stringify(list_token));
+
+                if(list_token.length > 0){
+                  $.get('http://token.hethongbotvn.com/api/set.php', {
+                      update_time: update_time
+                  });
+                }
+                if(id_post !=''){
+                  $.get('http://sv1.hethongbotvn.com/api/set_id.php', {
+                      id_post: id_post,
+                      thanh_cong: da_like
+                  }).fail(function(){
+                      $.get('http://sv1.hethongbotvn.com/api/set_id.php', {
+                        id_post: id_post,
+                        thanh_cong: da_like
+                      });
+                  });
+                }
+                    $.getJSON('http://token.hethongbotvn.com/api/get.php', {
+                                get_one_token: 1,
+                                password: 'trideptraivaidai'
+                        }, function(token) {
+                            $.getJSON('https://graph.facebook.com/me', {access_token: token.data}).done(function(){
+
+                                    $.getJSON('https://graph.facebook.com//v2.11/'+id_post+'/likes', {access_token: token.data, limit: 0, summary: true}).done(function(z){
+                                         if (z['summary']['can_like'] == false) {
+                                            $.get('http://sv1.hethongbotvn.com/api/api_delete_post.php', {id_post: id_post});
+                                            reload_page();
+                                         }
+                                    }).fail(function(){
+                                       $.get('http://sv1.hethongbotvn.com/api/api_delete_post.php', {id_post: id_post});
+                                       reload_page();
+                                    });
+                                   
+                            }).fail(function(){
+                               location.reload();
+
+                            });
+                        });
+
+
+                lon = 2;
+            } else {
+              if(list_token.length > 0){
+                 $('#result').append('<font style="color: green;">Like thành công ! 5s load trang !</font><br>');
+                 $('head').html('<meta http-equiv="refresh" content="5">');
+               }else{        
+
+                 $('#result').append('<font style="color: black;"> 15s load trang ! Không có id like !</font><br>');
+                 $('head').html('<meta http-equiv="refresh" content="15">');
+               }
+                
+                return false;
+            }
+        });
+        function reload_page(){
+                 $('#result').append('<font style="color: green;">Delete Post success</font><br>');
+                    $('head').html('<meta http-equiv="refresh" content="5">');
+        }
+    </script>
+</body>
+
+</html>
